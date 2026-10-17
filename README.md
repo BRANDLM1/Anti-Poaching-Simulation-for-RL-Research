@@ -41,8 +41,8 @@ This is a research prototype. The results below come from 5 random seeds per age
 
 The reserve is a graph of 52 landmarks: 21 entry points, 12 villages, 9 summits, 8 camera sites, a water source and the ranger station manually extraced from satellite imagery and personal field notes (`data/Reserve.csv`). Given the challenging terrain and lack of official roads, Edge lengths are A* paths over a slope raster built from ALOS AW3D30 elevation data. Nodes also carry viewshed scores, centrality and  village significance. A village can better be described as any point of civilization, some being actual villages, most are 1-2 gers with a corral.
 
-![Generated reserve map](data\reserve_map.png)
-![Edge traversal using A* on slope raster to navigate open wilderness terrain](data\wilderness_nav.png)
+![Generated reserve map](data/reserve_map.png)
+![Edge traversal using A* on slope raster to navigate open wilderness terrain](data/wilderness_nav.png)
 
 The simulation runs minute by minute over many days. It has weather that changes daily, sunrise and sunset computed with The Equation of Time and reserve's location, snow and floods blocking paths, ranger shifts, and an engine table of random events (breakdowns, getting lost in the dark, herders reporting a poacher, stopping to drink tea with herders, bathroom breaks, and so on). A poacher trip starts at one of many entry points, drives to a summit, hunts for up to six hours, then has to get out. It succeeds only if it finds a leopard and escapes. It fails if it is caught (by a ranger on patrol, a herder, or someone at the station) or runs out of time (48 hours).
 
@@ -148,7 +148,7 @@ I designed the world, agents, experiments, and analysis. I used Claude Code (Ant
 Original 30-M elevation data provided by JAXA (Japan Aerospace Exploration Agency), obtained in 2025.
 Further data collected personally and with Google Earth satellite imagery.
 
-I would also like to thank my data science professor, Dr. Russo, for agreeing to act as my research advisor throughout this projects early stages of conception.
+I would also like to thank my data science professor, Dr. Russo, for agreeing to act as my research advisor and assisting with design decisions throughout early stages of development.
 
 Reasoning Bank
 [ReasoningBank: Enabling agents to learn from experience](https://research.google/blog/reasoningbank-enabling-agents-to-learn-from-experience/)
