@@ -45,6 +45,7 @@ The reserve is a graph of 52 landmarks: 21 entry points, 12 villages, 9 summits,
 Generated reserve map
 ![Edge traversal using A* on slope raster to navigate open wilderness terrain](data/wilderness_nav.png)
 Edge traversal using A* on slope raster to navigate open wilderness terrain
+
 The simulation runs minute by minute over many days. It has weather that changes daily, sunrise and sunset computed with The Equation of Time and reserve's location, snow and floods blocking paths, ranger shifts, and an engine table of random events (breakdowns, getting lost in the dark, herders reporting a poacher, stopping to drink tea with herders, bathroom breaks, and so on). A poacher trip starts at one of many entry points, drives to a summit, hunts for up to six hours, then has to get out. It succeeds only if it finds a leopard and escapes. It fails if it is caught (by a ranger on patrol, a herder, or someone at the station) or runs out of time (48 hours).
 
 Agents are interchangeable "brains" behind one interface (`agents/base.py`):
