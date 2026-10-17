@@ -1,0 +1,21 @@
+# Tested with Python 3.13 on Windows.
+
+# Simulation and agents
+numpy>=2.4
+pandas>=2.2
+networkx>=3.5
+torch>=2.9
+
+# Analysis
+scipy>=1.18
+statsmodels>=0.14
+matplotlib>=3.10
+seaborn>=0.13
+
+# Reasoning-bank agents only (calls Claude; needs ANTHROPIC_API_KEY)
+anthropic>=1.14
+
+# Rebuilding the graph from terrain rasters only (also needs GDAL installed, e.g. via OSGeo4W)
+rasterio>=1.4
+pyproj>=3.7
+plotly>=6.0

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Editor and secrets
+.vscode/
+.env
+
+# Simulation outputs (regenerate with run_simulation.py / run_ablation.py)
+runs/
+analysis/trips_all.csv
+
+# Terrain rasters and the large exploration notebook (see README)
+processing/data/
+processing/Analysis.ipynb
+temp_viewshed_*.tif
+
+# Local only: superseded code and working notes
+archive/
+HANDOFF.md
+PLAN.md

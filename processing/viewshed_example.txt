@@ -1,0 +1,3 @@
+# Example: viewshed from one observer point (UTM x, y, observer height 2 m), max 2 km.
+# Run inside processing/data/ with GDAL on PATH.
+gdal raster viewshed --max-distance=2000 --pos=680395,4789596,2 reserve_UTM47N.tif m_view.tif
