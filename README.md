@@ -128,8 +128,6 @@ python -m terrain.check_graph
 python -m terrain.plot_map         # writes data/reserve_map.png
 ```
 
-If you got this far in the readme, congrats! I would just liek to point out one innovation in build_graph, surprisingly simple but very satisfying. In early stages of development reconstructing the reserve I 
-
 ## Layout
 
 ```
