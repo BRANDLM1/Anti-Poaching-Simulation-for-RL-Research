@@ -17,7 +17,7 @@ Each arm changes one thing:
 The rb* arms call Claude (needs ANTHROPIC_API_KEY)
 Skipped without key
 
-Learning arms train first then equal evaluations:
+Learning arms train first then equal evaluations
 Greedy moves (no immediate return to the node just left), no learning on days it never trained on. 
 
 Outputs in runs/ablation/:
@@ -78,7 +78,7 @@ SETTINGS = {
 # v3 and earlier used the old world (trips at midnight, certain off-duty spotting, same range day and night
 # pass {"trip_start": "midnight", "off_duty_spot_chance_per_min": 1.0, "night_detection_factor_headlights": 1.0} to reproduce it.
 DAWN = ShiftSpec(anchor="sunrise")
-DUSK = ShiftSpec(anchor="sunset", offset_minutes=-120)      # 4 h centred on sunset
+DUSK = ShiftSpec(anchor="sunset", offset_minutes=-120)      # 4 hours, offset to pass through sunset
 WORLDS = {
     "realistic": {},                                         # random starts, off-duty chance, headlights at night
     "realistic_dusk": {"shifts": [DAWN, DUSK]},              # + a second shift at dusk
@@ -86,7 +86,7 @@ WORLDS = {
 
 
 def play(cfg, brain, settings, keep_tracks):
-    """Create a world with a poacher brain. Ranger rebuilt per play"""
+    """Create a poacher instance. Ranger rebuilt per play"""
     def make_poacher(world, i):
         return brain
 
