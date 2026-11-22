@@ -297,95 +297,132 @@ class World:
                 fire_events("while_moving", role, name, body, self.now, self.sim, self.cfg, self.ctx, self.log)
 
     def _resolve(self, party):
-        """Apply the rules to one active poacher party for this tick: cawptures, retreats, phases, rewards."""
-        body, trip, brain, now = party.body, party.trip, party.brain, self.now
+        """Apply the rules to one active poacher party for this tick: captures, retreats, phases, rewards."""
+        body = party.body 
+        trip = party.trip 
+        now = self.now
+        node = body.current_node
+        position = body.get_current_pos()
         reward = REWARDS["tick"]
 
-        capture_event, capture_reason = False, ""
-        # Headlights are always on for now (5f makes them a choice): visible from further at night
-        radius_factor = self.cfg.night_detection_factor_headlights if is_night(now, self.cfg) else 1.0
-        for ranger in self.rangers:
-            gap = float(np.linalg.norm(np.array(body.get_current_pos()) - np.array(ranger.body.get_current_pos())))
-            party.closest_gap = gap if party.closest_gap is None else min(party.closest_gap, gap)
-            if not capture_event:
-                capture_event, capture_reason = self.sim.check_for_capture(body, ranger.body, radius_factor)
-                if capture_event and ranger.shift_end is None:
-                    # Off duty at the station: a passer-by is only spotted with a chance per minute in sight
-                    p_tick = 1 - (1 - self.cfg.off_duty_spot_chance_per_min) ** self.cfg.tick_minutes
-                    capture_event = self.station_rng.random() < p_tick
-                    capture_reason = "Spotted from the station (off duty)" if capture_event else ""
+        def record(kind, event_node, message, **details):
+            self.log.event(now, kind, party.name, node=event_node, pos=position, **details)
+            print(f"    {clock_str(now, self.cfg)} {party.name} {message}")
 
+        capture_reason = self._check_ranger_encounters(party)
+
+        # Movement events can also trigger a capture or force a retreat
         if body.outcome is not None:
-            kind, why = body.outcome
-            body.outcome = None # handled now, so it can't fire again next tick
+            kind, reason = body.outcome
+            body.outcome = None
+            
+            # Updating trip status and log accordingly
             if kind == "capture":
-                capture_event, capture_reason = True, why
+                capture_reason = reason
             elif kind == "retreat" and trip.phase != Phase.OUTBOUND:
-                # Abandon the trip: head for the nearest exit without a leopard
-                trip.phase, trip.exit = Phase.OUTBOUND, nearest_exit(self.G, body.current_node)
+                trip.phase = Phase.OUTBOUND
+                trip.exit = nearest_exit(self.G, node)
+                # Assign rewards
                 reward += REWARDS["retreat"]
-                self.log.event(now, "retreat", party.name, node=body.current_node, pos=body.get_current_pos(),
-                               reason=why, heading_for=trip.exit)
-                print(f"    {clock_str(now, self.cfg)} {party.name} retreats ({why}), heading for {trip.exit}")
-
-        if capture_event:
-            brain.observe({"kind": "captured", "node": body.current_node, "pos": body.get_current_pos(),
-                           "reason": capture_reason})
+                record("retreat", node, f"retreats ({reason}), heading for {trip.exit}",
+                    reason=reason, heading_for=trip.exit)
+        # Ranger poacher ccapture conditions
+        if capture_reason is not None:
+            party.brain.observe({"kind": "captured", "node": node, "pos": position,
+                                "reason": capture_reason})
             trip.phase = Phase.CAUGHT
             trip.outcome = "caught_after_kill" if trip.leopard_found else "caught"
-            reward += REWARDS["caught"]
             party.end_reason = capture_reason
-            self.log.event(now, "capture", party.name, node=body.current_node, pos=body.get_current_pos(),
-                           reason=capture_reason, after_kill=trip.leopard_found)
-            print(f"    {clock_str(now, self.cfg)} {party.name} caught near {body.current_node}: {capture_reason}")
+            reward += REWARDS["caught"]
+            record("capture", node, f"caught near {node}: {capture_reason}",
+                reason=capture_reason, after_kill=trip.leopard_found)
         else:
-            was_hunting = trip.phase == Phase.HUNTING
+            previous_phase = trip.phase
             advance_trip(trip, now, self.cfg, self.leopard_rng, self.G, body)
-            if was_hunting and trip.phase == Phase.OUTBOUND:
+
+            if previous_phase == Phase.HUNTING and trip.phase == Phase.OUTBOUND:
+                # Successful leopard capture by poacher
                 if trip.leopard_found:
                     reward += REWARDS["leopard"]
-                    self.log.event(now, "leopard_killed", party.name, node=trip.target, pos=body.get_current_pos())
-                    print(f"    {clock_str(now, self.cfg)} LEOPARD KILLED at {trip.target}; {party.name} heading for {trip.exit}")
+                    record("leopard_captured", trip.target,
+                        f"LEOPARD captured at {trip.target}; {party.name} heading for {trip.exit}")
                 else:
-                    self.log.event(now, "gave_up_hunting", party.name, node=trip.target, pos=body.get_current_pos())
-                    print(f"    {clock_str(now, self.cfg)} {party.name} gave up hunting, heading for {trip.exit}")
+                    # Probabilistic chance of abandoning hunt, not spotting leopard
+                    record("gave_up_hunting", trip.target,
+                        f"gave up hunting, heading for {trip.exit}")
             elif trip.phase == Phase.HUNTING and trip.hunting_since == now:
-                self.log.event(now, "hunting_started", party.name, node=trip.target, pos=body.get_current_pos())
-                print(f"    {clock_str(now, self.cfg)} {party.name} reached {trip.target}, hunting")
+                record("hunting_started", trip.target, f"reached {trip.target}, hunting")
+
+            elapsed_minutes = (now - trip.start_tick) * self.cfg.tick_minutes
+            # Successful poacher trip condition trigger
             if trip.phase == Phase.ESCAPED:
                 if trip.leopard_found:
                     reward += REWARDS["escaped"]
                 party.end_reason = trip.outcome
-                self.log.event(now, "escaped", party.name, node=body.current_node, pos=body.get_current_pos(),
-                               with_leopard=trip.leopard_found)
-                print(f"    {clock_str(now, self.cfg)} {party.name} escaped via {body.current_node}: {trip.outcome}")
-            elif now - trip.start_tick >= self.cfg.max_trip_hours * 60 / self.cfg.tick_minutes:
-                trip.phase, trip.outcome = Phase.TIMED_OUT, "timed_out"
+                record("escaped", node, f"escaped via {node}: {trip.outcome}",
+                    with_leopard=trip.leopard_found)
+            # Timeout condition trigger
+            elif elapsed_minutes >= self.cfg.max_trip_hours * 60:
+                trip.phase = Phase.TIMED_OUT
+                trip.outcome = "timed_out"
+                party.end_reason = trip.outcome
                 reward += REWARDS["timed_out"]
-                party.end_reason = "timed_out"
-                self.log.event(now, "timed_out", party.name, node=body.current_node, pos=body.get_current_pos())
-                print(f"    {clock_str(now, self.cfg)} {party.name} ran out of time near {body.current_node}")
+                record("timed_out", node, f"ran out of time near {node}")
 
-        done = trip.phase not in ACTIVE_PHASES
+        trip_finished = trip.phase not in ACTIVE_PHASES
         party.trip_reward += reward
-        brain.feedback(reward, done)
+        party.brain.feedback(reward, trip_finished)
 
-        if done:
-            brain.end_episode(trip.outcome)
-            self.trips.append({
-                "trip": len(self.trips) + 1, "party": party.name, "entry": trip.entry, "target": trip.target,
-                "start_tick": trip.start_tick, "end_tick": now,
-                "hours": round((now - trip.start_tick) * self.cfg.tick_minutes / 60, 1),
-                "outcome": trip.outcome, "end_reason": party.end_reason, "leopard_found": trip.leopard_found,
+        if trip_finished:
+            self._finish_trip(party)
+
+    def _check_ranger_encounters(self, party):
+        """Update the trip's closest ranger distance and return the first capture reason."""
+        body = party.body
+        position = np.asarray(body.get_current_pos())
+        radius_factor = 1.0
+        if is_night(self.now, self.cfg):
+            radius_factor = self.cfg.night_detection_factor_headlights
+
+        capture_reason = None
+        for ranger in self.rangers:
+            gap = float(np.linalg.norm(position - ranger.body.get_current_pos()))
+            if party.closest_gap is None or gap < party.closest_gap:
+                party.closest_gap = gap
+
+            if capture_reason is not None:
+                continue
+
+            detected, reason = self.sim.check_for_capture(body, ranger.body, radius_factor)
+            if not detected:
+                continue
+
+            if ranger.shift_end is not None:
+                capture_reason = reason
+            else:
+                chance_per_minute = self.cfg.off_duty_spot_chance_per_min
+                chance_this_tick = 1 - (1 - chance_per_minute) ** self.cfg.tick_minutes
+                if self.station_rng.random() < chance_this_tick:
+                    capture_reason = "Spotted from the station (off duty)"
+
+        return capture_reason
+
+    def _finish_trip(self,party):
+            party.brain.end_episode(party.trip.outcome)
+            party.trips.append({
+                "trip": len(self.trips) + 1, "party": party.name, "entry": party.trip.entry, "target": party.trip.target,
+                "start_tick": party.trip.start_tick, "end_tick": self.now,
+                "hours": round((self.now - party.trip.start_tick) * self.cfg.tick_minutes / 60, 1),
+                "outcome": party.trip.outcome, "end_reason": party.end_reason, "leopard_found": party.trip.leopard_found,
                 "closest_approach_m": None if party.closest_gap is None else round(party.closest_gap),
-                "poacher_success": trip.outcome == "escaped_with_leopard",
-                "ranger_failed": trip.leopard_found,
-                "reward": party.trip_reward, "epsilon": getattr(brain, "epsilon", None),
-                "path": body.path_taken,
-                **getattr(brain, "last_trip_stats", {}),   # a learning brain's own numbers (loss, mean Q...)
+                "poacher_success": party.trip.outcome == "escaped_with_leopard",
+                "ranger_failed": party.trip.leopard_found,
+                "reward": party.trip_reward, "epsilon": getattr(party.brain, "epsilon", None),
+                "path": party.body.path_taken,
+                **getattr(party.brain, "last_trip_stats", {}),   # a learning brain's own numbers (loss, mean Q...)
             })
             party.trip, party.body = None, None
-
+    
     def _print_day_summary(self):
         counts = Counter(e["kind"] for e in self.log.events[self.day_first_event_index:]
                          if e["kind"] not in ("weather", "arrived", "patrol_start"))
