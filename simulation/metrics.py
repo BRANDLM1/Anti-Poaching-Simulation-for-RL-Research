@@ -31,7 +31,7 @@ def summarize(trips, log):
         "poacher_success_rate": _share(sum(t["poacher_success"] for t in trips), n),   # leopard + escape
         "capture_rate": _share(len(caught), n),
         "timeout_rate": _share(sum(t["outcome"] == "timed_out" for t in trips), n),
-        "leopards_killed": sum(t["leopard_found"] for t in trips),
+        "leopards_captured": sum(t["leopard_found"] for t in trips),
         "ranger_fail_rate": _share(sum(t["ranger_failed"] for t in trips), n),          # any leopard found
         "retreats": sum(1 for e in log.events if e["kind"] == "retreat"),
         "mean_trip_hours": round(sum(hours) / n, 2) if n else None,

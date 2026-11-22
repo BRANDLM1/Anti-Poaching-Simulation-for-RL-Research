@@ -134,7 +134,7 @@ def run_one(arm, seed, settings):
     minutes = (time.time() - start) / 60
     print(f"  done {arm} seed {seed} in {minutes:.1f} min: success {summary['poacher_success_rate']}, "
           f"caught {summary['capture_rate']}", flush=True)
-    keep = ["trips", "poacher_success_rate", "capture_rate", "timeout_rate", "leopards_killed", "ranger_fail_rate",
+    keep = ["trips", "poacher_success_rate", "capture_rate", "timeout_rate", "leopards_captured", "ranger_fail_rate",
             "mean_trip_hours", "mean_closest_approach_m"]
     llm = brain.bank.writer.usage() if isinstance(brain, DQNRBAgent) else {}
     return {"arm": arm, "seed": seed, **{k: summary[k] for k in keep}, "minutes": round(minutes, 1), **llm}
