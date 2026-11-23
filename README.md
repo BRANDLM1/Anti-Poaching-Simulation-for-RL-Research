@@ -1,29 +1,27 @@
 # Tost anti-poaching simulation
 
-To what extent can simulations, RL agent knowledge and learning styles play in improving real-life decision-making and resource allocation in isolated, at-risk wildlife reserves?
+After visiting the Tost-Tosonbumba reserve in southern Mongolia in 2023, I kept coming back to one question. If the reserve faced renewed poaching pressure, how would a small ranger team decide where to patrol across such a large area? Many of the anti-poaching tools I’d seen focused on detecting activity as it happened. Even with that equipment, someone still had to decide where to put it and when to send a patrol. I wanted to explore whether a low-cost simulation could help reserves with limited staff and equipment test patrol decision-making ahead of time.
 
-A simulation of poachers and rangers in the Tost Mountains (Tost-Tosonbumba reserve, southern Mongolia), testing how agent knowledge and learning styles impact simulated performance either as a poacher infultrating a reserve, or as a defending ranger. The longer-term goal is a free or low-cost tool that understaffed reserves can use to try out patrol strategies, predict poacher activity, and use the resources at their disposal to the best of their ability.
+I started working on the idea independently and later pitched it to a professor at The College of New Jersey. Using elevation data, satellite imagery, and my field notes, I built a simulation of poachers and rangers in the Tost Mountains. In my first experiments, I used reinforcement learning to study how simulated poachers choose routes and how those choices affect the outcome of a trip. My longer-term goal is to see whether a ranger team could use the model to compare patrol plans and identify areas that are difficult to cover in a single shift. It could also be possible to use historical incident and geospatial data to predict poaching behavior, routes, and points of interception. I’ve continued the research independently since graduating.
 
-After visiting the Tost Tosonbumba Researve in 2023, I was fascinated by the snow leopard presence as the one and only reserve soley dedicated to wild snow leopard coservation. For the record, Mongolia boasts the second highest population of snow leopards in the world. The land itself sits only 30 miles or so from the Chinese border. For a long time the area was at the mercy of competing illegal mining operations and poaching activity before it's reform as a reserve in 2016. While in school I wanted to contribute to something real and it was only until I started studying natural language processing and data science, my introduction to AI, that the wheels started turning. 
+**Where the research stands.** In my first experiments, I changed how the simulated poacher chooses its next move. In every comparison, the rangers used the same method to plan their patrols. One agent that used lessons from previous trips was caught less often, but it also ran out of time more often. The nearly complete [Part A evaluation](analysis/results_eval_part_A.ipynb) looks at that tradeoff, learning speed and how much results vary across five runs of each configuration with different random seeds.
 
-Anti-poaching tools and assistive reserve technologies I'll see in the news or conservation sites usually cost money, required technical maintance, and are most importantly re-active(For example, thermal vision drones with AI detection). With the right data and strategies, I believe reserves can shift from reactionary to prepared and informed responses. Reserves should be able to learn from past incident data, and predict activity and poacher routes based on activity levels and terrain data. If they can only afford to staff rangers with select equipment, trail cams, vehicles, and select tools like drones, something should also be able to assist management with planning the best ways they might be able to put these resources to work, where, and when.
+The longer-term goal is a free or low-cost way for understaffed reserves to try out patrol strategies. Before drawing conclusions for real patrols, I want to check how closely the simulated trips, shifts and encounters resemble field operations, and whether the findings hold when those assumptions change.
 
-Global statisics (2016, unfortunately no follow-up global data within the past 10 years)
+<details>
+<summary>Conservation background and sources</summary>
+
+Global estimates cited in the original project background (2016)
 
 - Estimated global population of approx. 4,000 wild snow leopards
 - ~221-450 snow leopards are poached or killed illegally every year 
 - ~90% of incidents occur in China, Mongolia, Pakistan, India and Tajikistan
 - ~21% of incidents are the direct result of poaching for illegal trade 
-` ~18% are non-targeted or "accidental" killings 
+- ~18% are non-targeted or "accidental" killings
 - ~55% of incidents are done in retaliation for livestock depredation
-- ~60% of retaliatory are non-targeted killings resulting in an attempt to sell
-- Leopard pelts, teeth, claws, and bones are highly saught after for trading and traditional chinese medicines.
+- Leopard pelts, teeth, claws, and bones are highly sought after for trading and traditional chinese medicines.
 
-Since 2016, a lot has changed. Protection agencies (Snow Leopard Trust, The Snow Leopard Conservation Foundation) have worked hard to build the reserve into what it is today, and they continue to heavily invest in collaborative research initiatives and livestock insurance programs to deter retaliatory killings from herders. The reserve is specifically designed around a co-management framework where locals participate directly in conservation efforts, anti-poaching initiatives, and sustainable land use. 
-
-While incidents at Tost have dropped drastically with no official numbers being reported, proximity to the Chinese border may remain a potential risk. Historical tensions regarding land disutes and murder of conservationist Lkhagvasumberel Tumursukh was what led to the mining ban and reserve creation, but over the boarder is a different jurisdiction with their own interests and mining agenda.
-
-Considering these circumstances and having traveled there myself, this reserve was an excellent candidate to model a simulation after. I didn't want my research to put an actively at-risk reserve at higher risk or unintentionally release sensitive data, yet at the same time historical activity validates the landscape as highly dangerous if not properly upheld.
+My visit to Tost also drew me to the role of local herders in conservation. The sources below describe community research and livestock insurance, both relevant to understanding why conflicts with snow leopards arise. I chose this landscape because I had seen it firsthand and wanted to explore patrol planning without publishing sensitive incident records.
 
 -- 2016 report from the wildlife trade monitoring network TRAFFIC --
 [TRAFFIC Article](https://www.traffic.org/what-we-do/species/leopards/)
@@ -35,32 +33,35 @@ Alexander, Justine & Agvaantseren, Bayarjargal & Gongor, Enkhtuvshin & Mijiddorj
 [Article on community assisted conservation research](https://snowleopard.org/counting-gazelles-in-the-gobi/)
 [Article for leopard tracking insights](https://www.einpresswire.com/article/942812801/m24-s-strange-range-a-small-cat-and-a-big-question)
 
+</details>
+
 ## How it works
 
-This is a research prototype. The results below come from 5 random seeds per agent and should be read with that in mind.
-
-The reserve is a graph of 52 landmarks: 21 entry points, 12 villages, 9 summits, 8 camera sites, a water source and the ranger station manually extraced from satellite imagery and personal field notes (`data/Reserve.csv`). Given the challenging terrain and lack of official roads, Edge lengths are A* paths over a slope raster built from ALOS AW3D30 elevation data. Nodes also carry viewshed scores, centrality and  village significance. A village can better be described as any point of civilization, some being actual villages, most are 1-2 gers with a corral.
+I mapped 52 landmarks from satellite imagery and field notes: 21 entry points, 12 settlements, 9 summits, 8 camera sites, a water source and a ranger station. The data file calls the settlements “villages,” though most are one or two gers with a corral. Each landmark becomes a point in the simulation’s travel network. To estimate the distance between connected points, I used A* to trace a route over a slope map derived from ALOS AW3D30 elevation data (`data/Reserve.csv` lists the landmarks).
 
 ![Generated reserve map](data/reserve_map.png)
 Generated reserve map
 ![Edge traversal using A* on slope raster to navigate open wilderness terrain](data/wilderness_nav.png)
 Edge traversal using A* on slope raster to navigate open wilderness terrain
 
-The simulation runs minute by minute over many days. It has weather that changes daily, sunrise and sunset computed with The Equation of Time and reserve's location, snow and floods blocking paths, ranger shifts, and an engine table of random events (breakdowns, getting lost in the dark, herders reporting a poacher, stopping to drink tea with herders, bathroom breaks, and so on). A poacher trip starts at one of many entry points, drives to a summit, hunts for up to six hours, then has to get out. It succeeds only if it finds a leopard and escapes. It fails if it is caught (by a ranger on patrol, a herder, or someone at the station) or runs out of time (48 hours).
+The simulation advances one minute at a time. Weather changes daily, sunrise and sunset depend on the date and location, and snow or flooding can block a route. Events along the way can delay a trip or end it early. A poacher enters the reserve, travels to a summit, hunts for up to six hours and tries to leave. A successful trip ends with the poacher carrying a leopard out of the reserve. Other trips end in capture, an empty-handed escape or a timeout after 48 hours.
 
-Agents are interchangeable "brains" behind one interface (`agents/base.py`):
+Each agent uses the same interface to choose its next move (`agents/base.py`).
 
-- `Wanderer`: Random moves.
-- `ShortestPathPoacher`: Always takes the fastest route. No learning.
-- `DQNAgent`: A deep Q-network that scores each possible next move from what it knows. It starts out knowing only what is visible (positions, terrain, summits, water) and discovers villages, trail cameras and the station by arriving at them. Also capable of toggling aspects for the ablation.
-- `DQNRBAgent`: The DQN plus a reasoning bank. After trips, an LLM (Claude Haiku) reads a debrief containing what the poacher itself experienced and writes a lesson as weights on six concerns, such as avoiding villages or the station area. Lessons that keep ending in capture are dropped, and after a period of training the agent depends more on it's established weights than LLM lessons .
-- `PlannerRanger`: Simulated annealing agent plans a patrol from the station at the start of each shift, targeting points of interest as both the maintenance staff and guards for the reserve.
+- **Random movement** (`Wanderer`). The agent chooses a neighboring landmark at random.
+- **Shortest path** (`ShortestPathPoacher`). The poacher follows a route to its goal using the travel distances in the graph. This provides a baseline that requires no training.
+- **Deep Q-network** (`DQNAgent`). The poacher learns to score its possible next moves from trip rewards. I varied the information available to the network to test whether knowledge of landmarks or past captures helped it choose a route.
+- **DQN with a reasoning bank** (`DQNRBAgent`). After selected training trips, a language model reads an account of what the poacher experienced. It assigns weights to six concerns, such as proximity to a known capture site. The agent stores these lessons. In the version tested below, they lower the scores of moves associated with those concerns.
+- **Patrol planning** (`PlannerRanger`). At the start of each shift, the ranger uses simulated annealing to search for a patrol route that visits points of interest within the time available.
 
 ## Results
 
-Ablation in the "realistic" world: trips start at random times, the off-duty station spots passers-by only with some probability, and headlights make poachers easier to see at night. One dawn ranger shift. The learning agents trained for 1000 simulated days (roughly 600 trips) and were then evaluated for 200 unseen days with learning switched off. Success is the mean over 5 seeds ± the standard deviation between them (how much the result varies when the same agent is trained again with a different seed).
+In the main scenario (labeled `realistic` in the data), trips start at varying times, rangers begin one shift at dawn, and headlights increase detection range at night. An off-duty ranger has a chance of spotting a passing poacher. These are assumptions built into this experiment.
 
-Versions of DQN for clarity
+The learning agents trained for 1,000 simulated days. I then turned off learning and evaluated each agent over 200 new simulated days. The table reports the percentage of finished trips with each outcome, averaged across five seeds. The ± values show the standard deviation of success rates across seeds, in percentage points. Empty-handed escapes account for the remaining trips.
+
+The table uses three terms for the information a DQN can use:
+
 1. "Move geometry": the agent sees, for each possible move, the edge length and progress toward its goal. 
 2. "Node knowledge": adds 17 numbers about the place it would move to based on what it has learned. Visible terrain facts, what kind of place it is once discovered, known distances to villages and the station, and how often it was caught there. 
 3. "threat grid": adds a 10 × 10 map of where it was caught recently.
@@ -78,18 +79,18 @@ Versions of DQN for clarity
 
 What the data supports (Welch's t-test on per-seed results, Holm-corrected across 7 comparisons):
 
-- The DQN clearly beats Random (p < 0.001) and comes within ~5 points of the fixed fastest route.
-- My hypothesis that knowledge inputs and a threat-memory grid would improve performance was not supported. Adding both to the move-only DQN cut success from 30% to 10% (p < 0.001). Taken one step at a time, node knowledge lowered it to 17% (p = 0.036, not significant after correction) and the threat grid then to 10% (p = 0.16), so with 5 seeds the drop cannot be pinned on either input alone. The knowledge agents were also very inconsistent (4% to 28% across seeds). More inputs did not mean better decisions at this amount of training.
-- The reasoning bank cut captures from 30% to about 5% (p = 0.010), but the poacher became so cautious that it ran out of time far more often, so overall success did not improve. Its learning curve rose earlier (mean success over the first 500 training trips 0.238 vs 0.201), but with 5 seeds that difference is not statistically significant (p = 0.063). Lessons fed in as extra network inputs gave no speed-up; lessons applied directly to move scores did.
+- The move-only DQN succeeded on 30% of finished trips, compared with 7% for random movement (Holm-adjusted p < 0.001). The scripted fastest route averaged 36%.
+- I expected knowledge inputs and a threat-memory grid to help. Average success fell to 17% with node knowledge and 10% with the threat grid added. With five seeds, neither individual drop survived correction for multiple comparisons.
+- With lessons after every trip, the reasoning-bank agent was caught on about 5% of trips versus 30% for the move-only DQN (Holm-adjusted p = 0.010). Timeouts rose from 6% to 34%. Across the first 500 training trips, success averaged 23.8% versus 20.1%, an early advantage that remains uncertain (Holm-adjusted p = 0.189).
 - The same overall pattern holds in the earlier world where every trip started at midnight, and with a second ranger shift at dusk: fastest route first, the two move-based DQNs close behind (their order swaps between worlds), knowledge and threat inputs lower, random last.
 
 Limitations worth knowing:
 
 - Rangers on patrol catch few poachers. A 4-hour patrol from the station only reaches the corner of a 75 × 30 km reserve near it, so most captures come from herders and the station. As built, the simulation is better at comparing poacher strategies than ranger strategies.
-- Small seed size. 5 seeds per agent. Power estimate suggests ~10 are needed to settle potentially significant differences in learning-speed significance.
-- Reasoning-bank penalty strength is actively being tuned.
+- Five seeds per agent left several differences uncertain.
+- How strongly the stored lessons should influence each move remains an open question.
 
-All per-run numbers are in `analysis/runs_all.csv`, and `analysis/LAB.md` describes the analysis.
+See the [per-run results](analysis/runs_all.csv) and the [Part A evaluation notebook](analysis/results_eval_part_A.ipynb). The notebook includes saved figures and results. Rerunning the trip-level analysis requires an additional file, `analysis/trips_all.csv`, which is absent from this checkout.
 
 ## Running it
 
@@ -100,12 +101,12 @@ pip install -r requirements.txt
 
 python run_simulation.py           # One 20-day run: DQN poacher vs planning ranger, outputs in runs/
 python run_ablation.py smoke       # Every agent for a few days to check settings
-python run_ablation.py             # Complete ablation in parralel (taks a couple hours)
+python run_ablation.py             # Complete ablation in parallel
 python build_dataset.py            # Results gets formatted into analysis/trips_all.csv and runs_all.csv
 ```
 
 Each run writes `config.json`, `trips.csv`, `events.csv`, `tracks.csv` (positions every minute) and `summary.json`.
-Same seed gives identical random results.
+The simulation seed controls random draws for events such as weather and trip starts.
 
 The reasoning-bank agents need an Anthropic API key in `ANTHROPIC_API_KEY` (and `ANTHROPIC_WORKSPACE_ID` if the key is not tied to a workspace). Without a key, `run_ablation.py` skips over them. The 10 reasoning-bank runs above made 4,688 calls and cost $1.43.
 
@@ -120,7 +121,7 @@ python -m tests.test_reasoning_bank  # verify reasoning bank with a fake LLM, no
 
 ## Rebuilding the graph
 
-The graph in `data/` is included, so this is only needed after editing graph points of interest in `data/Reserve.csv`. The terrain rasters are not in the repository because they are large. To rebuild them, download the ALOS AW3D30 tiles N042–N043 / E099–E101 from JAXA, merge them with (`processing/merge_tiles.py`), reproject to UTM zone 47N and compute slope as the spacial derivative of elevation with GDAL. Then put `reserve_UTM47N.tif` and `reserve_slope.tif` in `processing/data/` or point `RESERVE_RASTER_DIR` at their folder, and run:
+The graph in `data/` is included, so this is only needed after editing graph points of interest in `data/Reserve.csv`. The terrain rasters are not in the repository because they are large. To rebuild them, download the ALOS AW3D30 tiles N042–N043 / E099–E101 from JAXA, merge them with (`processing/merge_tiles.py`), reproject to UTM zone 47N and compute slope as the spatial derivative of elevation with GDAL. Then put `reserve_UTM47N.tif` and `reserve_slope.tif` in `processing/data/` or point `RESERVE_RASTER_DIR` at their folder, and run:
 
 ```
 python -m terrain.build_graph      # needs GDAL on PATH for the viewshed step; slow (A* for every edge)
@@ -131,7 +132,7 @@ python -m terrain.plot_map         # writes data/reserve_map.png
 ## Layout
 
 ```
-agents/       the brains: base interface, DQN, reasoning bank, fastest route, ranger planner
+agents/       code for choosing poacher moves and planning ranger patrols
 simulation/   the world: clock, weather, trips, random events, capture rules, logging
 terrain/      building the landmark graph from the rasters
 data/         Reserve.csv (landmarks), the built graph, a map
@@ -155,22 +156,22 @@ Reasoning Bank
 
 ## What's next
 
-Nexts steps to improve the state of this project include
-- Tune Reasoning-bank penalty strength, find optimal figure
-- Collecting more results data with more random seeds for a stronger analysis
-- Further expansion of event engines and logic for realism
-- Additional ranger specific selections for rangers to fairly compete with poacher agents
+Next steps include
+- Repeat the comparisons with 10 seeds per agent configuration to better estimate variation across runs.
+- Test whether the reasoning-bank penalty carries too much weight once exploration becomes infrequent. Compare the current setting with weaker and zero penalties under the same world rules and training budget.
+- Compare simulated trip and patrol durations with field observations where available.
+- Test how patrol outcomes change when rangers can choose different routes and shift times.
 - Fine tuning of resource selection and sim world for runs:
     - number of rangers in a patrol 
     - options for vehicle selection
-    - consider smart patrol time logic
+    - alternative patrol schedules
     - drone and trail cam controls, footage capture logic
     - etc..
 - Research into alternative RL agents not previously considered
 - UI allowing visual observation of moves made, tick stepping through trips and runs
 - Allow for people to compete against ranger or poacher agents, compare their stats to machine stats
 - Human decision making as training data for agents, or more robust integration pipeline for historical capture data
-- World cusomization with additional land/nav processing tools and logic, considerations for different geographic terrains, social contexts and conflicts, timezones and weather, different types of at-risk animals, etc..
+- World customization with additional land/nav processing tools and logic, considerations for different geographic terrains, social contexts and conflicts, timezones and weather, different types of at-risk animals, etc..
 
 ## License
 MIT. See LICENSE.
